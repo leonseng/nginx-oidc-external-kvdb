@@ -6,7 +6,7 @@
 var newSession = false; // Used by oidcAuth() and validateIdToken()
 
 export default { auth, codeExchange, validateIdToken, logout };
-import util from './util.js';
+import kvdb from './kvdb.js';
 
 function retryOriginalRequest(r) {
   delete r.headersOut["WWW-Authenticate"]; // Remove evidence of original failed auth_jwt
@@ -17,7 +17,7 @@ async function auth(r) {
   // If a cookie was sent but the ID token is not in the key-value database, fetch ID token from remote KV store
   if (r.variables.cookie_auth_token && !r.variables.session_jwt) {
     r.log("Local cache miss. Attempt to fetch session information from remote KV store");
-    let remote_session_value = await util.readExtKVDB(r, r.variables.cookie_auth_token);
+    let remote_session_value = await kvdb.read(r, r.variables.cookie_auth_token);
     if (remote_session_value) {
       r.variables.session_jwt = remote_session_value.split(',')[0];
       r.variables.refresh_token = remote_session_value.split(',')[1];
@@ -58,10 +58,10 @@ async function auth(r) {
           error_log += ", timeout waiting for IdP";
         } else if (reply.status == 400) {
           try {
-            var errorset = JSON.parse(reply.responseBody);
+            var errorset = JSON.parse(reply.responseText);
             error_log += ": " + errorset.error + " " + errorset.error_description;
           } catch (e) {
-            error_log += ": " + reply.responseBody;
+            error_log += ": " + reply.responseText;
           }
         } else {
           error_log += " " + reply.status;
@@ -76,7 +76,7 @@ async function auth(r) {
 
       // Refresh request returned 200, check response
       try {
-        var tokenset = JSON.parse(reply.responseBody);
+        var tokenset = JSON.parse(reply.responseText);
         if (!tokenset.id_token) {
           r.error("OIDC refresh response did not include id_token");
           if (tokenset.error) {
@@ -99,6 +99,11 @@ async function auth(r) {
             // ID Token is valid, update keyval
             r.log("OIDC refresh success, updating id_token for " + r.variables.cookie_auth_token);
             r.variables.session_jwt = tokenset.id_token; // Update key-value store
+            if (tokenset.access_token) {
+              r.variables.access_token = tokenset.access_token;
+            } else {
+              r.variables.access_token = "";
+            }
 
             // Update refresh token (if we got a new one)
             if (r.variables.refresh_token != tokenset.refresh_token) {
@@ -106,7 +111,7 @@ async function auth(r) {
               r.variables.refresh_token = tokenset.refresh_token; // Update key-value store
             }
 
-            await util.writeExtKVDB(r.variables.cookie_auth_token, tokenset.id_token + "," + (tokenset.refresh_token ? tokenset.refresh_token : "-"));
+            await kvdb.write(r.variables.cookie_auth_token, tokenset.id_token + "," + (tokenset.refresh_token ? tokenset.refresh_token : "-"));
             retryOriginalRequest(r); // Continue processing original request
           }
         );
@@ -142,14 +147,14 @@ function codeExchange(r) {
 
     if (reply.status != 200) {
       try {
-        var errorset = JSON.parse(reply.responseBody);
+        var errorset = JSON.parse(reply.responseText);
         if (errorset.error) {
           r.error("OIDC error from IdP when sending authorization code: " + errorset.error + ", " + errorset.error_description);
         } else {
-          r.error("OIDC unexpected response from IdP when sending authorization code (HTTP " + reply.status + "). " + reply.responseBody);
+          r.error("OIDC unexpected response from IdP when sending authorization code (HTTP " + reply.status + "). " + reply.responseText);
         }
       } catch (e) {
-        r.error("OIDC unexpected response from IdP when sending authorization code (HTTP " + reply.status + "). " + reply.responseBody);
+        r.error("OIDC unexpected response from IdP when sending authorization code (HTTP " + reply.status + "). " + reply.responseText);
       }
       r.return(502);
       return;
@@ -157,7 +162,7 @@ function codeExchange(r) {
 
     // Code exchange returned 200, check for errors
     try {
-      var tokenset = JSON.parse(reply.responseBody);
+      var tokenset = JSON.parse(reply.responseText);
       if (tokenset.error) {
         r.error("OIDC " + tokenset.error + " " + tokenset.error_description);
         r.return(500);
@@ -183,13 +188,18 @@ function codeExchange(r) {
           // Add opaque token to keyval session store
           r.log("OIDC success, creating session " + r.variables.request_id);
           r.variables.new_session = tokenset.id_token; // Create key-value store entry
+          if (tokenset.access_token) {
+            r.variables.new_access_token = tokenset.access_token;
+          } else {
+            r.variables.new_access_token = "";
+          }
           r.headersOut["Set-Cookie"] = "auth_token=" + r.variables.request_id + "; " + r.variables.oidc_cookie_flags;
           r.return(302, r.variables.redirect_base + r.variables.cookie_auth_redir);
-          await util.writeExtKVDB(r, r.variables.request_id, tokenset.id_token + "," + (tokenset.refresh_token ? tokenset.refresh_token : "-"));
+          await kvdb.write(r, r.variables.request_id, tokenset.id_token + "," + (tokenset.refresh_token ? tokenset.refresh_token : "-"));
         }
       );
     } catch (e) {
-      r.error("OIDC authorization code sent but token response is not JSON. " + reply.responseBody);
+      r.error("OIDC authorization code sent but token response is not JSON. " + reply.responseText);
       r.return(502);
     }
   }
@@ -253,6 +263,7 @@ function validateIdToken(r) {
 function logout(r) {
   r.log("OIDC logout for " + r.variables.cookie_auth_token);
   r.variables.session_jwt = "-";
+  r.variables.access_token = "-";
   r.variables.refresh_token = "-";
   r.return(302, r.variables.oidc_logout_redirect);
 }
