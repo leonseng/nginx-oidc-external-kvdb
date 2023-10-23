@@ -11,7 +11,7 @@ This is based on the [nginxinc/nginx-openid-connect](https://github.com/nginxinc
 
 ## Instructions
 
-Create `gomplate-data.yaml` from [gomplate-config.yaml.example]()
+Create `gomplate.yaml` from [gomplate.yaml.example](./gomplate.yaml.example)
 
 Render the templates by running
 ```
