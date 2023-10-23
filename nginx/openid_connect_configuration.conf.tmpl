@@ -4,7 +4,7 @@
 # the $host variable is used as the default input parameter but can be changed.
 #
 map $host $oidc_authz_endpoint {
-    default https://${auth0_domain}/authorize;
+    default https://{{ (ds "cfg").auth0_domain }}/authorize;
 
     #www.example.com "https://my-idp/oauth2/v1/authorize";
 }
@@ -22,17 +22,17 @@ map $host $oidc_authz_extra_args {
 }
 
 map $host $oidc_token_endpoint {
-    default https://${auth0_domain}/oauth/token;
+    default https://{{ (ds "cfg").auth0_domain }}/oauth/token;
 
 }
 
 map $host $oidc_jwt_keyfile {
-    default https://${auth0_domain}/.well-known/jwks.json;
+    default https://{{ (ds "cfg").auth0_domain }}/.well-known/jwks.json;
 
 }
 
 map $host $oidc_client {
-    default ${auth0_client_id};
+    default {{ (ds "cfg").auth0_client_id }};
 }
 
 map $host $oidc_pkce_enable {
@@ -40,7 +40,7 @@ map $host $oidc_pkce_enable {
 }
 
 map $host $oidc_client_secret {
-    default "${auth0_client_secret}";
+    default "{{ (ds "cfg").auth0_client_secret }}";
 }
 
 map $host $oidc_scopes {
@@ -50,7 +50,7 @@ map $host $oidc_scopes {
 map $host $oidc_logout_redirect {
     # Where to send browser after requesting /logout location. This can be
     # replaced with a custom logout page, or complete URL.
-    default "https://${auth0_domain}/v2/logout?returnTo=http%3A%2F%2Flocalhost:8010&client_id=${auth0_client_id}"; # Built-in, simple logout page
+    default "https://{{ (ds "cfg").auth0_domain }}/v2/logout?returnTo=http%3A%2F%2Flocalhost:8010&client_id={{ (ds "cfg").auth0_client_id }}"; # Built-in, simple logout page
 }
 
 map $host $oidc_hmac_key {

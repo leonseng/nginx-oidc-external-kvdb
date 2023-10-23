@@ -19,6 +19,7 @@ async function auth(r) {
     r.log("Local cache miss. Attempt to fetch session information from remote KV store");
     let remote_session_value = await kvdb.read(r, r.variables.cookie_auth_token);
     if (remote_session_value) {
+      r.log("Remote cache hit.");
       r.variables.session_jwt = remote_session_value.split(',')[0];
       r.variables.refresh_token = remote_session_value.split(',')[1];
       retryOriginalRequest(r); // Continue processing original request

@@ -1,0 +1,4 @@
+nginx_plus_docker_image: repo.example.com/nginx-plus:latest
+auth0_domain: "foo.auth0.com"
+auth0_client_id: 63pxangeA07Y92WQKQPFTHwUdTxMXVY9
+auth0_client_secret: WPs6zD_XwR8ReKT8Go3MbvEwtOrpC9wODDx2YpA72vp7--A3fG8kPQr5tVwYz2

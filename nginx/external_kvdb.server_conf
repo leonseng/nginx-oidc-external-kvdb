@@ -1,4 +1,4 @@
     location /_kvstore/ {
         internal;
-        proxy_pass ${etcd3_api_endpoint}/v3/kv/;
+        proxy_pass http://etcd:2379/v3/kv/;
     }

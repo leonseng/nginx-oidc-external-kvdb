@@ -2,4 +2,6 @@
 .terraform.*
 terraform.tfstate*
 *.tfvars
-.tmp
+gomplate.yaml
+docker-compose.yaml
+openid_connect_configuration.conf
