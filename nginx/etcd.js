@@ -1,25 +1,8 @@
-export default { write, read };
-
-function base64Encode(value) {
-  return Buffer.from(value).toString('base64');
-}
-
-function base64Decode(value) {
-  return Buffer.from(value, 'base64').toString();
-}
-
 /*
-  ETCD functions
+  This is an ETCD implementation of kvdb.js.example
 */
-function buildEtcdMessageBody(key, value) {
-  var req_body = '{"key": "' + base64Encode(key) + '"';
-  if (value) {
-    req_body += ', "value": "' + base64Encode(value) + '"';
-  }
-  req_body += '}';
 
-  return req_body;
-}
+export default { write, read };
 
 async function write(r, key, value) {
   var req_body = buildEtcdMessageBody(key, value);
@@ -47,4 +30,22 @@ async function read(r, key) {
 
   r.log("No existing session found on ETCD.");
   return;
+}
+
+function base64Encode(value) {
+  return Buffer.from(value).toString('base64');
+}
+
+function base64Decode(value) {
+  return Buffer.from(value, 'base64').toString();
+}
+
+function buildEtcdMessageBody(key, value) {
+  var req_body = '{"key": "' + base64Encode(key) + '"';
+  if (value) {
+    req_body += ', "value": "' + base64Encode(value) + '"';
+  }
+  req_body += '}';
+
+  return req_body;
 }

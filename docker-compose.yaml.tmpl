@@ -21,7 +21,7 @@ services:
       - ./nginx/frontend.conf:/etc/nginx/conf.d/frontend.conf:ro
       - ./nginx/openid_connect.js:/etc/nginx/conf.d/openid_connect.js:ro
       - ./nginx/openid_connect.server_conf:/etc/nginx/conf.d/openid_connect.server_conf:ro
-      - ./nginx/kvdb.js:/etc/nginx/conf.d/kvdb.js:ro
+      - ./nginx/etcd.js:/etc/nginx/conf.d/kvdb.js:ro
       - ./nginx/external_kvdb.server_conf:/etc/nginx/conf.d/external_kvdb.server_conf:ro
       - ./nginx/openid_connect_configuration.conf:/etc/nginx/conf.d/openid_connect_configuration.conf:ro
     ports:

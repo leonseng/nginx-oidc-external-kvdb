@@ -1,0 +1,14 @@
+export default { write, read };
+
+/*
+All external key-value store must implement the write() and read() functions as below
+
+async function write(r, key, value) {
+  ...
+}
+
+async function read(r, key) {
+  ...
+  return <value>;
+}
+*/
