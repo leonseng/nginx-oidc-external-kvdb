@@ -1,10 +1,10 @@
 output "username" {
   description = "Username of resource owner account"
-  value       = local.resource_owner_username
+  value       = module.auth0_oidc_provider.user_email
 }
 
 output "password" {
   description = "Password of resource owner account"
-  value       = random_password.user_password.result
+  value       = module.auth0_oidc_provider.user_password
   sensitive   = true
 }

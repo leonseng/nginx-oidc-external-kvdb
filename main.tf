@@ -1,61 +1,21 @@
-provider "auth0" {
-  domain    = var.auth0_domain
-  api_token = var.auth0_api_key
+resource "random_id" "id" {
+  byte_length = 4
+  prefix      = "nginx-oidc-ext-kvdb"
 }
 
-locals {
-  project_name            = "nginx-oidc-external-kvdb"
-  resource_owner_username = "joe@test.com"
-}
+module "auth0_oidc_provider" {
+  source = "github.com/leonseng/terraform-auth0-oidc-provider"
 
-resource "auth0_connection" "db" {
-  name     = local.project_name
-  strategy = "auth0"
-}
-
-resource "auth0_client" "app" {
-  name                       = local.project_name
-  allowed_clients            = []
-  app_type                   = "regular_web"
-  oidc_conformant            = true
-  token_endpoint_auth_method = "none"
-  callbacks                  = ["http://localhost:8010/_codexch"]
-  allowed_logout_urls        = ["http://localhost:8010"]
-  grant_types                = ["authorization_code"]
-}
-
-resource "auth0_connection_client" "app_to_db" {
-  connection_id = auth0_connection.db.id
-  client_id     = auth0_client.app.id
-}
-
-data "auth0_client" "api_explorer_app" {
-  name = "API Explorer Application"
-}
-
-resource "auth0_connection_client" "api_explorer_app_to_db" {
-  connection_id = auth0_connection.db.id
-  client_id     = data.auth0_client.api_explorer_app.id
-}
-
-resource "random_password" "user_password" {
-  length  = 16
-  special = false
-}
-
-resource "auth0_user" "user" {
-  depends_on = [
-    auth0_connection_client.api_explorer_app_to_db
-  ]
-  connection_name = auth0_connection.db.name
-  email           = local.resource_owner_username
-  email_verified  = true
-  password        = random_password.user_password.result
+  object_name_prefix        = random_id.id.dec
+  auth0_domain              = var.auth0_domain
+  auth0_api_token           = var.auth0_api_key
+  auth0_callback_urls       = ["http://localhost:8010/_codexch"]
+  auth0_allowed_logout_urls = ["http://localhost:8010"]
 }
 
 resource "null_resource" "tmp_dir" {
   triggers = {
-    once = local.project_name
+    once = random_id.id.dec
   }
 
   provisioner "local-exec" {
@@ -89,8 +49,8 @@ resource "local_file" "nginx_oidc_conf" {
     "files/templates/openid_connect_configuration.conf.tpl",
     {
       auth0_domain        = var.auth0_domain,
-      auth0_client_id     = auth0_client.app.client_id,
-      auth0_client_secret = auth0_client.app.client_secret
+      auth0_client_id     = module.auth0_oidc_provider.client_id,
+      auth0_client_secret = module.auth0_oidc_provider.client_secret
     }
   )
   filename = "${path.module}/.tmp/openid_connect_configuration.conf"
